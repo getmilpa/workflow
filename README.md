@@ -68,10 +68,12 @@ $gateService->approvePassage($passage, approverId: 'member:12', notes: 'fit scor
   — reads `Entities\StateDefinition`/`TransitionDefinition`/`GateDefinition` from the
   database to answer `canTransition()`, `getAvailableTransitions()`, `transition()`,
   and lookups by domain/code. No transition graph is hardcoded in PHP.
-- **`Contracts\GateServiceInterface`** (implemented by `Services\GatePassageService`)
-  — request/approve/reject/waive an append-only `Entities\GatePassage`, with the
-  anti-self-approval constraint enforced at the service layer
-  (`Exceptions\SelfApprovalException`).
+- **`Contracts\GateServiceInterface`** — request/approve/reject/waive an
+  `Entities\GatePassage`, with the anti-self-approval constraint enforced at the
+  service layer (`Exceptions\SelfApprovalException`). Two implementations ship:
+  `Services\GatePassageService` (Doctrine-backed, append-only persisted rows) and
+  `Services\InMemoryGateService` (zero-DB, for consumers with no `EntityManager`) —
+  see "Gate services: Doctrine and in-memory" below.
 - **`Verification\StateMachineVerifier`** — runs the gate machinery through
   `milpa/core`'s `VerifierInterface`: a generic `VerificationRequest`/`VerificationContext`
   in, a `VerificationResult` out, bridged losslessly through `StateMachine\GateResult`.
@@ -85,6 +87,37 @@ $gateService->approvePassage($passage, approverId: 'member:12', notes: 'fit scor
 - **No product coupling.** The polymorphic `entity_type`/`entity_id` pair on
   `GatePassage` lets any domain (opportunity, project, invoice, ...) register its own
   states/transitions/gates without this package knowing about it.
+
+## Gate services: Doctrine and in-memory
+
+`Contracts\GateServiceInterface` has two implementations, picked by whether the consumer
+has a Doctrine `EntityManagerInterface` at all:
+
+- **`Services\GatePassageService`** — the original, Doctrine-backed implementation.
+  `persist()`/`flush()`s each `Entities\GatePassage` as an append-only row and can answer
+  `getApprovedPassagesForEntity()` with a real `QueryBuilder` query. Requires an
+  `EntityManagerInterface` in its constructor.
+- **`Services\InMemoryGateService`** — a non-Doctrine implementation for zero-DB /
+  event-sourced consumers (e.g. `milpa/orchestrator` replaying its own append-only event
+  log) that have no `EntityManagerInterface` to construct `GatePassageService` with.
+  Requires **zero** constructor arguments (an optional `AuditLoggerInterface` is the only
+  parameter). It returns the same `Entities\GatePassage` entity `GatePassageService`
+  does — `GatePassage`'s constructor/setters are plain PHP, so `new GatePassage()` works
+  without Doctrine as long as its Doctrine-generated `getId()` is never read; this class
+  uses `GatePassage::getUuid()` wherever a stable identifier is needed instead. State
+  (recorded approvers, the approved-passages-per-entity index) lives only for the
+  lifetime of the service instance — keep one alive per request/process if you need
+  `ApprovalPolicy::DUAL`'s two-distinct-approvers count to span more than one call.
+  It is also the first implementation to actually honor a gate's `ApprovalPolicy`:
+  `DUAL` requires two distinct approver principals across two `approvePassage()` calls
+  before the passage leaves `REQUESTED`; `SINGLE`, `QUORUM`, and `AUTO` all resolve on
+  the first approval (see the class DocBlock for why `QUORUM`/`AUTO` fall back that way).
+
+Both implementations enforce the same D9 self-approval guard on `approvePassage()`
+(`Exceptions\SelfApprovalException`) and the same waivability guard on `waiveGate()`
+(`Exceptions\NonWaivableGateException`) — pick the implementation that matches your
+persistence story; the interface (and every other collaborator, like
+`Verification\StateMachineVerifier`) doesn't care which one it's talking to.
 
 ## Namespace layout
 
