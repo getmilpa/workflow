@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2](https://github.com/getmilpa/workflow/compare/v0.1.1...v0.1.2) (2026-07-09)
+
+
+### Features
+
+* InMemoryGateService — gate evaluation without Doctrine ([517a4bc](https://github.com/getmilpa/workflow/commit/517a4bcd26d7b3f44c498cfb484212d3ed575f36))
+
+
+### Miscellaneous Chores
+
+* release 0.1.2 ([adcf110](https://github.com/getmilpa/workflow/commit/adcf11012325ff509b8b6618772f1dea1ebecdfa))
+
 ## [0.1.1](https://github.com/getmilpa/workflow/compare/v0.1.0...v0.1.1) (2026-07-08)
 
 
