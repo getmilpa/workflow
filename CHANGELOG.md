@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/getmilpa/workflow/compare/v0.1.2...v0.1.3) (2026-07-12)
+
+
+### Bug Fixes
+
+* receive milpa/core 0.6 — pin bump ([95af7c4](https://github.com/getmilpa/workflow/commit/95af7c49af9d849a0b01ab395889fbaac81c1006))
+
 ## [0.1.2](https://github.com/getmilpa/workflow/compare/v0.1.1...v0.1.2) (2026-07-09)
 
 
