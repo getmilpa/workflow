@@ -3,6 +3,12 @@
   "description": "ORM-backed data-driven state machine for the Milpa PHP framework: states, transitions and approval gates with evidence, plus a VerifierInterface bridge into the core verification seam.",
   "type": "library",
   "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Rodrigo Vicente - TeamX Agency",
+      "homepage": "https://teamx.agency"
+    }
+  ],
   "require": {
     "php": ">=8.3",
     "milpa/core": "^0.6",
