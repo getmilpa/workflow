@@ -107,11 +107,11 @@ class TransitionDefinition
 
     #[ORM\ManyToOne(targetEntity: StateDefinition::class)]
     #[ORM\JoinColumn(name: 'from_state_id', referencedColumnName: 'id', nullable: false)]
-    private StateDefinition $fromState;
+    private ?StateDefinition $fromState = null;
 
     #[ORM\ManyToOne(targetEntity: StateDefinition::class)]
     #[ORM\JoinColumn(name: 'to_state_id', referencedColumnName: 'id', nullable: false)]
-    private StateDefinition $toState;
+    private ?StateDefinition $toState = null;
 
     /** @var Collection<int, GateDefinition> */
     #[ORM\ManyToMany(targetEntity: GateDefinition::class, inversedBy: 'transitions')]
@@ -211,12 +211,12 @@ class TransitionDefinition
     // GETTERS - RELATIONS
     // =========================================================================
 
-    public function getFromState(): StateDefinition
+    public function getFromState(): ?StateDefinition
     {
         return $this->fromState;
     }
 
-    public function getToState(): StateDefinition
+    public function getToState(): ?StateDefinition
     {
         return $this->toState;
     }
@@ -304,7 +304,7 @@ class TransitionDefinition
     /**
      * Sets the state this transition originates from.
      */
-    public function setFromState(StateDefinition $fromState): self
+    public function setFromState(?StateDefinition $fromState): self
     {
         $this->fromState = $fromState;
         return $this;
@@ -313,7 +313,7 @@ class TransitionDefinition
     /**
      * Sets the state this transition arrives at.
      */
-    public function setToState(StateDefinition $toState): self
+    public function setToState(?StateDefinition $toState): self
     {
         $this->toState = $toState;
         return $this;
@@ -373,8 +373,8 @@ class TransitionDefinition
             'label' => $this->label,
             'required_role' => $this->requiredRole,
             'metadata' => $this->metadata,
-            'from_state' => $this->fromState->toArray(),
-            'to_state' => $this->toState->toArray(),
+            'from_state' => $this->fromState?->toArray(),
+            'to_state' => $this->toState?->toArray(),
             'gate_definitions' => array_map(
                 fn (GateDefinition $gate) => [
                     'id' => $gate->getId(),

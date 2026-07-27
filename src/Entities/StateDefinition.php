@@ -369,7 +369,7 @@ class StateDefinition
     {
         if ($this->transitionsFrom->removeElement($transition)) {
             if ($transition->getFromState() === $this) {
-                $transition->setFromState(null); // @phpstan-ignore argument.type
+                $transition->setFromState(null);
             }
         }
         return $this;
@@ -394,7 +394,7 @@ class StateDefinition
     {
         if ($this->transitionsTo->removeElement($transition)) {
             if ($transition->getToState() === $this) {
-                $transition->setToState(null); // @phpstan-ignore argument.type
+                $transition->setToState(null);
             }
         }
         return $this;

@@ -176,7 +176,17 @@ class DataDrivenStateMachine implements StateMachineInterface
         foreach ($transitions as $transition) {
             /** @var TransitionDefinition $transition */
 
-            $toStateCode = $transition->getToState()->getCode();
+            // The column is NOT NULL, so a transition loaded from the database
+            // always has a destination. The property is nullable to model the
+            // detached moment between removing a transition from a state and
+            // wiring it to another — and a transition with nowhere to go is
+            // not an available transition.
+            $toState = $transition->getToState();
+            if ($toState === null) {
+                continue;
+            }
+
+            $toStateCode = $toState->getCode();
 
             // Evaluar si la transición es posible
             $result = $this->canTransition($domain, $currentState, $toStateCode, $context);
