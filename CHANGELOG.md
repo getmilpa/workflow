@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/getmilpa/workflow/compare/v0.1.3...v0.1.4) (2026-08-01)
+
+
+### Bug Fixes
+
+* quitar una transición de un estado dejaba de ser fatal (71.6% -&gt; 90.9%) ([c650d80](https://github.com/getmilpa/workflow/commit/c650d80d7ecc26b71c4d63aafe59768a3caa7588))
+
 ## [0.1.3](https://github.com/getmilpa/workflow/compare/v0.1.2...v0.1.3) (2026-07-12)
 
 
