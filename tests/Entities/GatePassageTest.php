@@ -6,6 +6,7 @@ namespace Milpa\Workflow\Tests\Entities;
 
 use PHPUnit\Framework\TestCase;
 use Milpa\Workflow\Entities\GateDefinition;
+use Milpa\Workflow\Entities\Evidence;
 use Milpa\Workflow\Entities\GatePassage;
 use Milpa\Workflow\Enums\GatePassageStatus;
 use Milpa\Workflow\Tests\Support\EntityIdSetter;
@@ -96,5 +97,52 @@ final class GatePassageTest extends TestCase
 
         $this->assertFalse($passage->isPending());
         $this->assertTrue($passage->isApproved());
+    }
+
+    /**
+     * Los accesores y las notas: aburridos, y sin ellos el pase no se puede auditar.
+     *
+     * Se prueban juntos a proposito. Cada uno por separado seria una prueba que repite el nombre del
+     * metodo; juntos verifican lo unico que importa de este objeto — que lo que le escribiste es lo
+     * que devuelve, porque de ahi sale el registro que alguien va a leer manana.
+     */
+    public function testTheAccessorsReturnWhatWasWritten(): void
+    {
+        $passage = new GatePassage();
+        $passage->setGateDefinition(new GateDefinition());
+        $passage->setEntityType('opportunity')->setEntityId(7)->setRequestedBy('member:1');
+        $passage->setRequestedNotes('viene del formulario')
+            ->setApprovedNotes('revisado')
+            ->setRejectedReason('sin presupuesto')
+            ->setMetadata(['campo' => 'valor']);
+
+        self::assertNotSame('', $passage->getUuid(), 'el uuid se acuña al construir');
+        self::assertSame(GatePassageStatus::REQUESTED, $passage->getStatus());
+        self::assertSame('viene del formulario', $passage->getRequestedNotes());
+        self::assertSame('revisado', $passage->getApprovedNotes());
+        self::assertSame('sin presupuesto', $passage->getRejectedReason());
+        self::assertSame(['campo' => 'valor'], $passage->getMetadata());
+        self::assertInstanceOf(\DateTime::class, $passage->getCreatedAt());
+        self::assertCount(0, $passage->getEvidences());
+    }
+
+    /**
+     * La evidencia se agrega una sola vez y se puede quitar.
+     *
+     * El `contains` no es paranoia: una coleccion Doctrine acepta el mismo objeto dos veces, y un
+     * pase con la misma evidencia duplicada hace que quien la cuente para decidir si el gate esta
+     * completo cuente de mas.
+     */
+    public function testEvidenceIsAddedOnceAndCanBeRemoved(): void
+    {
+        $passage = new GatePassage();
+        $evidencia = new Evidence();
+
+        $passage->addEvidence($evidencia);
+        $passage->addEvidence($evidencia);
+        self::assertCount(1, $passage->getEvidences(), 'la misma dos veces sigue siendo una');
+
+        $passage->removeEvidence($evidencia);
+        self::assertCount(0, $passage->getEvidences());
     }
 }

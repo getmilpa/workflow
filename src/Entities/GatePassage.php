@@ -351,6 +351,13 @@ class GatePassage
         return $this->expiresAt;
     }
 
+    /**
+     * Le pone plazo a este pase, o se lo quita con `null`.
+     *
+     * `null` es «espera indefinidamente», que sigue siendo una opción válida: una compuerta que
+     * aguarda a que vuelva quien firma no debería morirse sola. Quien decide vencerlo es
+     * {@see \Milpa\Workflow\Contracts\GateServiceInterface::expireIfDue()}, y nadie más.
+     */
     public function setExpiresAt(?DateTime $expiresAt): self
     {
         $this->expiresAt = $expiresAt;
