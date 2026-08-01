@@ -210,4 +210,37 @@ class GatePassageService implements GateServiceInterface
 
         return $passage;
     }
+
+    /**
+     * EL ÚNICO SITIO donde un pase pasa de pendiente a vencido. Ver
+     * {@see GateServiceInterface::expireIfDue()} para por qué es un hecho y no una comparación.
+     */
+    public function expireIfDue(GatePassage $passage, \DateTimeImmutable $now): bool
+    {
+        $plazo = $passage->getExpiresAt();
+        if ($plazo === null || $passage->getStatus()->isFinal()) {
+            return false;
+        }
+
+        if ($now <= \DateTimeImmutable::createFromInterface($plazo)) {
+            return false;
+        }
+
+        $passage->expire();
+
+        $this->em->flush();
+
+        $this->auditLogger?->log(
+            entityType: 'GatePassage',
+            entityId: (string) $passage->getId(),
+            action: 'expired',
+            actorUserId: null,
+            newValues: [
+                'status' => GatePassageStatus::EXPIRED->value,
+                'expired_at' => $now->format(\DateTimeInterface::ATOM),
+            ],
+        );
+
+        return true;
+    }
 }

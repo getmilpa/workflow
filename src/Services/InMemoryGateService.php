@@ -300,4 +300,24 @@ final class InMemoryGateService implements GateServiceInterface
 
         return $required > 0 ? $required : 1;
     }
+
+    /**
+     * EL ÚNICO SITIO donde un pase pasa de pendiente a vencido. Ver
+     * {@see GateServiceInterface::expireIfDue()} para por qué es un hecho y no una comparación.
+     */
+    public function expireIfDue(GatePassage $passage, \DateTimeImmutable $now): bool
+    {
+        $plazo = $passage->getExpiresAt();
+        if ($plazo === null || $passage->getStatus()->isFinal()) {
+            return false;
+        }
+
+        if ($now <= \DateTimeImmutable::createFromInterface($plazo)) {
+            return false;
+        }
+
+        $passage->expire();
+
+        return true;
+    }
 }

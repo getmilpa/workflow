@@ -224,4 +224,85 @@ final class InMemoryGateServiceTest extends TestCase
 
         $this->assertSame([], $service->getApprovedPassagesForEntity('opportunity', 42));
     }
+
+    /**
+     * Un pase con plazo vencido pasa a EXPIRED, y eso es un HECHO, no una comparacion.
+     *
+     * Q-P19-B comparo este sistema con el del agente en siete dimensiones. Coincidieron en dos, y las
+     * dos eran ausencias: ninguno caducaba. Un pase abierto para siempre deja el proceso detenido sin
+     * que nadie lo declare detenido.
+     */
+    public function testAPassagePastItsDeadlineBecomesExpired(): void
+    {
+        $service = new InMemoryGateService();
+        $passage = $service->requestPassage($this->gate(), 'opportunity', 99, 'member:7');
+        $passage->setExpiresAt(new \DateTime('2026-08-01 10:00:00'));
+
+        $vencio = $service->expireIfDue($passage, new \DateTimeImmutable('2026-08-01 10:00:01'));
+
+        $this->assertTrue($vencio);
+        $this->assertSame(GatePassageStatus::EXPIRED, $passage->getStatus());
+        $this->assertNotNull($passage->getResolvedAt());
+    }
+
+    /**
+     * Vencido NO es rechazado, y la diferencia se sostiene en los datos.
+     *
+     * Rechazar es una decision: alguien miro y dijo que no. Vencer es lo contrario — nadie miro.
+     * Meterlos en el mismo estado haria que un silencio se leyera como un juicio, y quien audite
+     * manana no podria distinguir "lo negaron" de "se les paso".
+     */
+    public function testAnExpiredPassageIsNotARejectionAndCarriesNoJudge(): void
+    {
+        $service = new InMemoryGateService();
+        $passage = $service->requestPassage($this->gate(), 'opportunity', 99, 'member:7');
+        $passage->setExpiresAt(new \DateTime('2026-08-01 10:00:00'));
+        $service->expireIfDue($passage, new \DateTimeImmutable('2026-08-01 11:00:00'));
+
+        $this->assertNotSame(GatePassageStatus::REJECTED, $passage->getStatus());
+        $this->assertNull($passage->getApprovedBy(), 'nadie aprobo ni rechazo');
+        $this->assertNull($passage->getRejectedReason(), 'un silencio no tiene motivo');
+        $this->assertTrue($passage->getStatus()->isFinal(), 'pero ya no cambia');
+    }
+
+    /** Antes del plazo no pasa nada, y llamarlo mil veces no cambia nada. */
+    public function testBeforeTheDeadlineNothingHappens(): void
+    {
+        $service = new InMemoryGateService();
+        $passage = $service->requestPassage($this->gate(), 'opportunity', 99, 'member:7');
+        $passage->setExpiresAt(new \DateTime('2026-08-01 10:00:00'));
+
+        for ($i = 0; $i < 3; ++$i) {
+            $this->assertFalse($service->expireIfDue($passage, new \DateTimeImmutable('2026-08-01 09:59:59')));
+        }
+
+        $this->assertSame(GatePassageStatus::REQUESTED, $passage->getStatus());
+    }
+
+    /** Sin plazo, espera indefinidamente — que es lo que hacia antes y a veces es lo correcto. */
+    public function testAPassageWithNoDeadlineNeverExpires(): void
+    {
+        $service = new InMemoryGateService();
+        $passage = $service->requestPassage($this->gate(), 'opportunity', 99, 'member:7');
+
+        $this->assertFalse($service->expireIfDue($passage, new \DateTimeImmutable('2099-01-01 00:00:00')));
+        $this->assertSame(GatePassageStatus::REQUESTED, $passage->getStatus());
+    }
+
+    /**
+     * Un pase YA RESUELTO no se vence encima: aprobado tarde sigue aprobado.
+     *
+     * Es lo que impide que la caducidad reescriba una decision que alguien si tomo. El pase es
+     * append-only y un estado final es permanente.
+     */
+    public function testAnAlreadyResolvedPassageIsNotOverwrittenByExpiry(): void
+    {
+        $service = new InMemoryGateService();
+        $passage = $service->requestPassage($this->gate(), 'opportunity', 99, 'member:7');
+        $passage->setExpiresAt(new \DateTime('2026-08-01 10:00:00'));
+        $service->approvePassage($passage, 'member:12');
+
+        $this->assertFalse($service->expireIfDue($passage, new \DateTimeImmutable('2026-08-01 11:00:00')));
+        $this->assertSame(GatePassageStatus::APPROVED, $passage->getStatus());
+    }
 }

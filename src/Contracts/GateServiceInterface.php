@@ -56,4 +56,34 @@ interface GateServiceInterface
      * @return array<int, GatePassage>
      */
     public function getApprovedPassagesForEntity(string $entityType, int $entityId): array;
+
+    /**
+     * EL ÚNICO SITIO donde un pase pasa de pendiente a vencido.
+     *
+     * ── POR QUÉ ES UN MÉTODO Y NO UNA COMPARACIÓN QUE CADA UNO HAGA ─────────────────────────────
+     *
+     * Porque «vencido» tiene que ser **un hecho**, y un hecho lo produce alguien en un instante
+     * concreto. Si cada componente comparara `expiresAt` con su propio reloj, dos de ellos podrían
+     * contestar distinto sobre el mismo pase, y ninguno dejaría rastro de cuándo se notó.
+     *
+     * Los demás **observan el resultado**: leen `getStatus() === GatePassageStatus::EXPIRED`. No lo
+     * recalculan, no lo reinterpretan, no lo repiten. Es la condición que Rod puso a esta mitad, y su
+     * razón es de historia: este repositorio ya encontró cuatro comparadores de identidad de
+     * capacidad que no coincidían, y una cardinalidad que decidía el orden de carga. Dos sitios que
+     * deciden lo mismo divergen; la única pregunta es cuándo.
+     *
+     * ── POR QUÉ RECIBE EL INSTANTE ──────────────────────────────────────────────────────────────
+     *
+     * Para que se pueda probar sin esperar, y para que quien lo llame decida qué reloj vale. Un
+     * método que consulta la hora por su cuenta obliga a que las pruebas duerman.
+     *
+     * No hace nada si el pase ya está resuelto, si no tiene plazo, o si el plazo no ha vencido:
+     * devuelve `false` y nada cambia. Se puede llamar en cada lectura sin ensuciar nada.
+     *
+     * Es la contraparte de {@see \Milpa\Agent\SessionStore::expireIfDue()} en el otro sistema de
+     * aprobación — Q-P19-B midió que son cosas
+     * distintas en cinco de siete dimensiones, y que **ésta es la única que compartían**: la de no
+     * tener ninguna.
+     */
+    public function expireIfDue(GatePassage $passage, \DateTimeImmutable $now): bool;
 }

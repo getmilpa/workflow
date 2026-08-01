@@ -133,6 +133,30 @@ class GatePassage
     #[ORM\Column(name: 'resolved_at', type: 'datetime', nullable: true)]
     private ?DateTime $resolvedAt = null;
 
+    /**
+     * Cuándo se cierra la ventana para decidir, o `null` si no hay plazo.
+     *
+     * `null` es «espera indefinidamente», que es lo que hacía este paquete antes de que esto
+     * existiera y a veces es lo correcto. Lo que no podía pasar era que NO SE PUDIERA poner plazo:
+     * un pase abierto para siempre deja el proceso detenido sin que nadie lo declare detenido
+     * (Q-P19-B).
+     *
+     * Columna nueva y anulable: los pases que ya existen quedan sin plazo, que es exactamente lo que
+     * eran.
+     *
+     * ── OJO AL INSTALAR: ESTE PAQUETE NO PUEDE MIGRAR TU BASE ───────────────────────────────────
+     *
+     * `milpa/workflow` declara sus tablas y **no tiene forma de enviar cambios de esquema**. Si tu app
+     * ya tenía `workflow_gate_passages` de una versión anterior, agrega la columna antes de usar esta:
+     *
+     *     ALTER TABLE workflow_gate_passages ADD COLUMN expires_at DATETIME NULL DEFAULT NULL;
+     *
+     * El hueco está en el tablero como `packages-can-ship-schema`, y hasta que exista el mecanismo
+     * esta línea es la única advertencia que hay.
+     */
+    #[ORM\Column(name: 'expires_at', type: 'datetime', nullable: true)]
+    private ?DateTime $expiresAt = null;
+
     // =========================================================================
     // RELATIONS
     // =========================================================================
@@ -322,6 +346,17 @@ class GatePassage
         return $this;
     }
 
+    public function getExpiresAt(): ?DateTime
+    {
+        return $this->expiresAt;
+    }
+
+    public function setExpiresAt(?DateTime $expiresAt): self
+    {
+        $this->expiresAt = $expiresAt;
+        return $this;
+    }
+
     // =========================================================================
     // SETTERS - NOTES & JUSTIFICATION
     // =========================================================================
@@ -489,6 +524,24 @@ class GatePassage
         $this->approvedBy = $approverId;
         $this->resolvedAt = new DateTime();
         $this->rejectedReason = $reason;
+        return $this;
+    }
+
+    /**
+     * Vence el pasaje: nadie decidio dentro de la ventana.
+     *
+     * Hermana de {@see self::approve()} y {@see self::reject()} y deliberadamente distinta de las
+     * dos: no lleva `approvedBy` porque NADIE aprobo, y no lleva `rejectedReason` porque nadie
+     * rechazo. Un silencio no es un juicio.
+     *
+     * No la llames desde cualquier lado: la unica puerta es
+     * {@see \Milpa\Workflow\Contracts\GateServiceInterface::expireIfDue()}, que es quien decide
+     * SI vencio. Esta solo escribe el hecho.
+     */
+    public function expire(): self
+    {
+        $this->status = GatePassageStatus::EXPIRED->value;
+        $this->resolvedAt = new DateTime();
         return $this;
     }
 
