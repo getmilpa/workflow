@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/getmilpa/workflow/compare/v0.1.5...v0.1.6) (2026-09-06)
+
+
+### Bug Fixes
+
+* lift the stale milpa/core ceiling that dragged whole apps backwards ([#9](https://github.com/getmilpa/workflow/issues/9)) ([4a646e7](https://github.com/getmilpa/workflow/commit/4a646e736fb63ff5b7f77b67b6d25aa381419c12))
+
 ## [0.1.5](https://github.com/getmilpa/workflow/compare/v0.1.4...v0.1.5) (2026-08-01)
 
 
