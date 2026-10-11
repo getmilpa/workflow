@@ -80,7 +80,7 @@ class TransitionContext
          *
          * Ejemplos:
          * - ['waived_gate' => 'BUDGET_APPROVAL', 'justification' => 'CEO override']
-         * - ['ip_address' => '192.168.1.1', 'user_agent' => 'Mozilla...']
+         * - ['ip_address' => '192.0.2.1', 'user_agent' => 'Mozilla...']
          *
          * @var array<string, mixed>
          */
